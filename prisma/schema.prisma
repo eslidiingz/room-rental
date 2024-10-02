@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PaymentChannel {
+  CASH
+  BANK_TRANSFER
+  PAYMENT_GATEWAY
+}
+
+model Company {
+  id               String    @id @unique @default(uuid()) @db.Uuid
+  username         String    @unique
+  password         String
+  code             String    @unique
+  name             String
+  firstname        String
+  lastname         String
+  email            String    @unique
+  phone_number     String
+  line_id          String?
+  is_active        Boolean   @default(true)
+  email_vertify_at DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime?
+  deleted_at       DateTime?
+
+  company_packages CompanyPackage[]
+  Building         Building[]
+  Room             Room[]
+  Renter           Renter[]
+  RoomRental       RoomRental[]
+
+  @@index([username, email, phone_number])
+  @@map("companies")
+}
+
+model Package {
+  id              String           @id @unique @default(uuid()) @db.Uuid
+  code            String           @unique
+  name            String
+  details         String
+  monthly         Float
+  yearly          Float
+  yearly_discount Float?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime?
+  deleted_at      DateTime?
+  CompanyPackage  CompanyPackage[]
+
+  @@index([code])
+  @@map("packages")
+}
+
+model CompanyPackage {
+  id               String         @id @unique @default(uuid()) @db.Uuid
+  company_id       String         @db.Uuid
+  package_id       String         @db.Uuid
+  start_date       DateTime
+  expired_date     DateTime
+  paid_status      PaymentStatus  @default(PENDING)
+  is_paid          Boolean        @default(false)
+  total_payment    Float
+  paid_at          DateTime?
+  payment_document String?
+  PaymentChannel   PaymentChannel
+  last_notify_at   DateTime?
+  created_at       DateTime       @default(now())
+  updated_at       DateTime?
+  deleted_at       DateTime?
+
+  company Company @relation(fields: [company_id], references: [id])
+  package Package @relation(fields: [package_id], references: [id])
+
+  @@index([company_id, package_id, paid_at])
+  @@map("company_packages")
+}
+
+model Building {
+  id         String    @id @unique @default(uuid()) @db.Uuid
+  company_id String    @db.Uuid
+  name       String
+  note       String?
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+  deleted_at DateTime?
+
+  company Company @relation(fields: [company_id], references: [id])
+  rooms   Room[]
+
+  @@index([company_id])
+  @@map("buildings")
+}
+
+model Room {
+  id                  String    @id @unique @default(uuid()) @db.Uuid
+  company_id          String    @db.Uuid
+  building_id         String    @db.Uuid
+  floor_number        Int
+  name                String
+  price               Float
+  is_deposit          Boolean   @default(true)
+  deposit             Float
+  is_available        Boolean   @default(true)
+  is_active           Boolean   @default(true)
+  note                String
+  contract_start_date DateTime
+  contract_end_date   DateTime
+  created_at          DateTime  @default(now())
+  updated_at          DateTime?
+  deleted_at          DateTime?
+
+  company      Company      @relation(fields: [company_id], references: [id])
+  building     Building     @relation(fields: [building_id], references: [id])
+  room_rentals RoomRental[]
+
+  @@index([company_id, building_id, contract_start_date, contract_end_date])
+  @@map("rooms")
+}
+
+model Renter {
+  id         String    @id @unique @default(uuid()) @db.Uuid
+  company_id String    @db.Uuid
+  username   String?   @unique
+  password   String?
+  firstname  String
+  lastname   String
+  card_id    String?
+  nickname   String?
+  address    String?
+  line_id    String?
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+  deleted_at DateTime?
+
+  company      Company      @relation(fields: [company_id], references: [id])
+  room_rentals RoomRental[]
+
+  @@index([company_id, username])
+  @@map("renters")
+}
+
+model RoomRental {
+  id              String    @id @unique @default(uuid()) @db.Uuid
+  company_id      String    @db.Uuid
+  room_id         String    @db.Uuid
+  renter_id       String    @db.Uuid
+  electrict_bill  Float?
+  water_bill      Float?
+  maintenance_fee Float?
+  total_payment   Float?
+  last_notify_at  DateTime?
+  is_paid         Boolean   @default(false)
+  last_paid_at    DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime?
+  deleted_at      DateTime?
+
+  company                 Company             @relation(fields: [company_id], references: [id])
+  room                    Room                @relation(fields: [room_id], references: [id])
+  renter                  Renter              @relation(fields: [renter_id], references: [id])
+  renter_pay_transactions RoomRentalPayment[]
+
+  @@index([company_id, room_id, renter_id])
+  @@map("room_rentals")
+}
+
+model RoomRentalPayment {
+  id               String        @id @unique @default(uuid()) @db.Uuid
+  room_rental_id   String        @db.Uuid
+  amount           Float
+  status           PaymentStatus @default(PENDING)
+  payment_document String
+  created_at       DateTime      @default(now())
+  updated_at       DateTime?
+
+  room_rental RoomRental @relation(fields: [room_rental_id], references: [id])
+
+  @@index([room_rental_id])
+  @@map("room_rental_payments")
+}
+
+model Administrator {
+  id         String    @id @unique @default(uuid()) @db.Uuid
+  username   String
+  password   String
+  name       String
+  is_active  String
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+  deleted_at DateTime?
+
+  @@map("administrators")
+}
