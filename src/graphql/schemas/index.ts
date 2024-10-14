@@ -1,6 +1,12 @@
 // Combines all schemas
-import { postTypeDefs } from './postSchema';
-import { userTypeDefs } from './userSchema';
+
+import { companyTypeDefs } from "../company/company.schema";
 
 
-export const typeDefs = [userTypeDefs, postTypeDefs];
+// import { companyTypeDefs } from './companySchema';
+// import { postTypeDefs } from './postSchema';
+// import { userTypeDefs } from './userSchema';
+
+
+export const typeDefs = [companyTypeDefs];
+// export const typeDefs = [userTypeDefs, postTypeDefs];
